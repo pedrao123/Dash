@@ -1,52 +1,56 @@
-# Prerequisites
-*.d
-
-# Object files
+# ==== Build outputs ====
+build/
+Build/
+Debug/
+Release/
 *.o
-*.ko
-*.obj
+*.d
 *.elf
-
-# Linker output
-*.ilk
-*.map
-*.exp
-
-# Precompiled Headers
-*.gch
-*.pch
-
-# Libraries
-*.lib
-*.a
-*.la
-*.lo
-
-# Shared objects (inc. Windows DLLs)
-*.dll
-*.so
-*.so.*
-*.dylib
-
-# Executables
-*.exe
-*.out
-*.app
-*.i*86
-*.x86_64
+*.bin
 *.hex
+*.map
+*.list
 
-# Debug files
-*.dSYM/
+# ==== STM32CubeIDE specific ====
+.metadata/
+.settings/
+*.launch
+
+# Eclipse-based files
+.project
+.cproject
+
+# ==== CubeMX ====
+# Keep the .ioc file
+# *.ioc
+
+# ==== Toolchain / ARM ====
+*.axf
+*.out
+*.lst
+
+# ==== Logs ====
+*.log
+
+# ==== Temporary files ====
+*.tmp
+*.bak
+*~
+
+# ==== OS files ====
+.DS_Store
+Thumbs.db
+
+# ==== VSCode  ====
+.vscode/
+
+# ==== CMake  ====
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# ==== Other ====
 *.su
 *.idb
 *.pdb
-
-# Kernel Module Compile Results
-*.mod*
-*.cmd
-.tmp_versions/
-modules.order
-Module.symvers
-Mkfile.old
-dkms.conf
