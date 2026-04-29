@@ -59,7 +59,7 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define LED_CNT 269
+#define LED_CNT 135
 
 /* USER CODE BEGIN Private defines */
 

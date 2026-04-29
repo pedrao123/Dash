@@ -6,8 +6,10 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <string.h>
 #include "ws2812.h"
 #include "heartbeat_led.h"
+#include "uart_transport.h"
 
 /* USER CODE END Includes */
 
@@ -402,6 +404,13 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+static void loopback_rx_cb(const uint8_t *data, uint16_t len) {
+    static const uint8_t expected[] = { 0xDE, 0xAD, 0xBE, 0xEF };
+    if (len == sizeof(expected) && memcmp(data, expected, len) == 0)
+        setLedValues(&ws2812, 1, 0, 0, 20);  // LED 1 azul = OK
+    else
+        setLedValues(&ws2812, 1, 20, 0, 0);  // LED 1 vermelho = erro
+}
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -450,10 +459,15 @@ void Task_CAN_Rx(void *argument)
 void Task_Display(void *argument)
 {
   /* USER CODE BEGIN Task_Display */
-  /* Infinite loop */
-  for(;;)
+  uart_transport_init();
+  uart_transport_set_rx_callback(loopback_rx_cb);
+
+  static const uint8_t test_frame[] = { 0xDE, 0xAD, 0xBE, 0xEF };
+
+  for (;;)
   {
-    osDelay(1);
+    uart_transport_send(test_frame, sizeof(test_frame));
+    osDelay(500);
   }
   /* USER CODE END Task_Display */
 }
