@@ -3,12 +3,12 @@
 
 #include <stdint.h>
 
-// Victor Vision VP addresses — fill in from protocol documentation
-#define VP_RPM              0x0010u
-#define VP_GEAR             0x0020u
-#define VP_TPS              0x0030u
-#define VP_BATTERY_VOLTAGE  0x0040u
-#define VP_ECT              0x0050u
+// Victor Vision VP addresses — valores em decimal no UnicView AD: 10, 20, 30, 40, 50
+#define VP_RPM              0x000Au
+#define VP_GEAR             0x0014u
+#define VP_TPS              0x001Eu
+#define VP_BATTERY_VOLTAGE  0x0028u
+#define VP_ECT              0x0032u
 
 typedef struct {
     uint16_t vp;      // Victor Vision variable pointer address

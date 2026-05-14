@@ -1,14 +1,19 @@
 #include "uart_transport.h"
 #include "stm32f7xx_hal.h"
 #include "cmsis_os.h"
+#include <string.h>
 
 #define RX_BUF_SIZE  64u
+#define TX_BUF_SIZE  32u   // max frame size (write + CRC = 10 bytes)
 #define TX_TIMEOUT   pdMS_TO_TICKS(100)
 
 extern UART_HandleTypeDef  huart3;
 extern DMA_HandleTypeDef   hdma_usart3_rx;
 
-static uint8_t  s_rx_buf[RX_BUF_SIZE];
+// DTCM (0x20000000) is CPU-only on STM32F722 — DMA requires AXI SRAM (SRAM1).
+__attribute__((section(".sram1_bss"))) static uint8_t s_rx_buf[RX_BUF_SIZE];
+__attribute__((section(".sram1_bss"))) static uint8_t s_tx_buf[TX_BUF_SIZE];
+
 static void   (*s_rx_cb)(const uint8_t *, uint16_t);
 
 static osMutexId_t     s_tx_mutex;
@@ -30,9 +35,13 @@ void uart_transport_set_rx_callback(void (*cb)(const uint8_t *data, uint16_t len
 }
 
 bool uart_transport_send(const uint8_t *data, uint16_t len) {
+    if (len > TX_BUF_SIZE) return false;
     if (osMutexAcquire(s_tx_mutex, TX_TIMEOUT) != osOK) return false;
 
-    if (HAL_UART_Transmit_DMA(&huart3, (uint8_t *)data, len) != HAL_OK) {
+    // Copy caller's buffer (may be on stack/DTCM) into DMA-accessible SRAM1.
+    memcpy(s_tx_buf, data, len);
+
+    if (HAL_UART_Transmit_DMA(&huart3, s_tx_buf, len) != HAL_OK) {
         osMutexRelease(s_tx_mutex);
         return false;
     }

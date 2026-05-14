@@ -10,6 +10,8 @@
 #include "ws2812.h"
 #include "heartbeat_led.h"
 #include "uart_transport.h"
+#include "victor_vision.h"
+#include "can_receiver.h"
 
 /* USER CODE END Includes */
 
@@ -404,13 +406,6 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-static void loopback_rx_cb(const uint8_t *data, uint16_t len) {
-    static const uint8_t expected[] = { 0xDE, 0xAD, 0xBE, 0xEF };
-    if (len == sizeof(expected) && memcmp(data, expected, len) == 0)
-        setLedValues(&ws2812, 1, 0, 0, 20);  // LED 1 azul = OK
-    else
-        setLedValues(&ws2812, 1, 20, 0, 0);  // LED 1 vermelho = erro
-}
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -441,10 +436,10 @@ void StartDefaultTask(void *argument)
 void Task_CAN_Rx(void *argument)
 {
   /* USER CODE BEGIN Task_CAN_Rx */
-  /* Infinite loop */
-  for(;;)
+  can_receiver_init();
+  for (;;)
   {
-    osDelay(1);
+    can_receiver_task_run();
   }
   /* USER CODE END Task_CAN_Rx */
 }
@@ -460,14 +455,22 @@ void Task_Display(void *argument)
 {
   /* USER CODE BEGIN Task_Display */
   uart_transport_init();
-  uart_transport_set_rx_callback(loopback_rx_cb);
+  vv_init();
 
-  static const uint8_t test_frame[] = { 0xDE, 0xAD, 0xBE, 0xEF };
-
+  uint32_t tick = osKernelGetTickCount();
   for (;;)
   {
-    uart_transport_send(test_frame, sizeof(test_frame));
-    osDelay(500);
+    vehicle_state_t state;
+    can_receiver_get_state(&state);
+
+    vv_update_field(VV_FIELD_RPM,     state.rpm.value);
+    vv_update_field(VV_FIELD_GEAR,    state.gear.value);
+    vv_update_field(VV_FIELD_TPS,     state.tps.value);
+    vv_update_field(VV_FIELD_BATTERY, state.battery_voltage.value);
+    vv_update_field(VV_FIELD_ECT,     state.ect.value);
+
+    tick += 50u;
+    osDelayUntil(tick);
   }
   /* USER CODE END Task_Display */
 }

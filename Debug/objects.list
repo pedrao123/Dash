@@ -9,6 +9,7 @@
 "./Core/Src/sysmem.o"
 "./Core/Src/system_stm32f7xx.o"
 "./Core/Src/uart_transport.o"
+"./Core/Src/victor_vision.o"
 "./Core/Src/ws2812.o"
 "./Core/Src/ws2812_demos.o"
 "./Core/Startup/startup_stm32f722retx.o"
