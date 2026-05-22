@@ -141,7 +141,10 @@ See http://www.FreeRTOS.org/RTOS-Cortex-M3-M4.html. */
 /* Normal assert() semantics without relying on the provision of an assert.h
 header file. */
 /* USER CODE BEGIN 1 */
-#define configASSERT( x ) if ((x) == 0) {taskDISABLE_INTERRUPTS(); for( ;; );}
+/* fault_indicate_assert() is implemented in stm32f7xx_it.c — sends 'A' on
+ * UART3 and resets so the crash cookie check on next boot shows white LEDs. */
+extern void fault_indicate_assert(void);
+#define configASSERT( x ) if ((x) == 0) { fault_indicate_assert(); for( ;; ); }
 /* USER CODE END 1 */
 
 /* Definitions that map the FreeRTOS port interrupt handlers to their CMSIS

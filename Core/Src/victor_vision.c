@@ -1,4 +1,5 @@
 #include "victor_vision.h"
+#include "config.h"
 #include "uart_transport.h"
 #include "cmsis_os.h"
 #include <string.h>
@@ -16,16 +17,15 @@
 #define BC_READ_REQ_1W  4u   // CMD(1) + VP(2) + LEN(1)
 #define BC_READ_RSP_1W  6u   // CMD(1) + VP(2) + LEN(1) + DATA(2)
 
-#define RESP_TIMEOUT    pdMS_TO_TICKS(200u)
+#define RESP_TIMEOUT    pdMS_TO_TICKS(CFG_VV_RESP_TIMEOUT_MS)
 #define MAX_PAYLOAD     32u
 
-// VP address lookup indexed by vv_field_t
 static const uint16_t s_vp_table[] = {
-    [VV_FIELD_RPM]     = VP_RPM,
-    [VV_FIELD_GEAR]    = VP_GEAR,
-    [VV_FIELD_TPS]     = VP_TPS,
-    [VV_FIELD_BATTERY] = VP_BATTERY_VOLTAGE,
-    [VV_FIELD_ECT]     = VP_ECT,
+    [VV_FIELD_RPM]     = CFG_VP_RPM,
+    [VV_FIELD_GEAR]    = CFG_VP_GEAR,
+    [VV_FIELD_TPS]     = CFG_VP_TPS,
+    [VV_FIELD_BATTERY] = CFG_VP_BATTERY,
+    [VV_FIELD_ECT]     = CFG_VP_ECT,
 };
 #define FIELD_COUNT ((uint8_t)(sizeof(s_vp_table) / sizeof(s_vp_table[0])))
 

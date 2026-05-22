@@ -5,6 +5,7 @@
 #include <stdbool.h>
 
 void uart_transport_init(void);
+void uart_transport_reset(void);   // abort stuck DMA and restart; call on detected TX error
 bool uart_transport_send(const uint8_t *data, uint16_t len);
 void uart_transport_set_rx_callback(void (*cb)(const uint8_t *data, uint16_t len));
 

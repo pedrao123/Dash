@@ -3,9 +3,6 @@
 
 #include "ws2812.h"
 
-// Index of the WS2812 LED used for heartbeat
-#define HEARTBEAT_LED_INDEX  0
-
 typedef enum {
     HB_STATUS_OK    = 0,  // green  — system nominal
     HB_STATUS_WARN  = 1,  // amber  — degraded (e.g. CAN stale)

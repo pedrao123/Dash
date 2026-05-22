@@ -6,12 +6,14 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <string.h>
+#include "config.h"
 #include "ws2812.h"
 #include "heartbeat_led.h"
+#include "shifting_lights.h"
 #include "uart_transport.h"
 #include "victor_vision.h"
 #include "can_receiver.h"
+#include "task_watchdog.h"
 
 /* USER CODE END Includes */
 
@@ -66,7 +68,18 @@ const osThreadAttr_t TaskHeartbeat_attributes = {
   .priority = (osPriority_t) osPriorityLow,
 };
 /* USER CODE BEGIN PV */
-ws2812_handleTypeDef ws2812;
+__attribute__((section(".sram1_bss"))) ws2812_handleTypeDef ws2812;
+
+/* Crash cookie — survives soft reset (SRAM1 is not zeroed by startup code).
+ * Fault handlers write 0xDEADxxxx here, then call NVIC_SystemReset().
+ * main() reads this before osKernelStart() and shows a colour on all LEDs:
+ *   0xDEAD0001 = HardFault   → red
+ *   0xDEAD0002 = MemManage   → blue
+ *   0xDEAD0003 = BusFault    → green
+ *   0xDEAD0004 = UsageFault  → yellow
+ *   0xDEAD0005 = NMI         → white
+ */
+__attribute__((section(".sram1_bss"))) volatile uint32_t fault_cookie;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -123,7 +136,31 @@ int main(void)
   MX_CAN1_Init();
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
-  ws2812_init(&ws2812, &htim3, TIM_CHANNEL_3, 6);
+  ws2812_init(&ws2812, &htim3, TIM_CHANNEL_3, CFG_LED_TOTAL_COUNT);
+
+  /* ---- Crash-cookie check ------------------------------------------------
+   * If the previous run ended in a fault, show a solid colour for 3 s so the
+   * user can identify the fault type without a debugger or serial terminal.
+   * The cookie persists across NVIC_SystemReset() in SRAM1 (not zeroed by
+   * startup), but is cleared here so normal heartbeat resumes afterwards.
+   * -------------------------------------------------------------------------*/
+  if ((fault_cookie & 0xFFFF0000UL) == 0xDEAD0000UL)
+  {
+    uint8_t fc = (uint8_t)(fault_cookie & 0xFFU);
+    uint8_t r = 0, g = 0, b = 0;
+    switch (fc)
+    {
+      case 1: r = 30;                break; /* HardFault  — red    */
+      case 2:          b = 30;       break; /* MemManage  — blue   */
+      case 3:      g = 30;           break; /* BusFault   — green  */
+      case 4: r = 30; g = 30;        break; /* UsageFault — yellow */
+      default: r = 30; g = 30; b = 30; break; /* NMI/other  — white  */
+    }
+    for (uint16_t i = 0; i < CFG_LED_TOTAL_COUNT; i++)
+      setLedValues(&ws2812, i, r, g, b);
+    HAL_Delay(3000);
+    fault_cookie = 0UL;
+  }
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -418,10 +455,10 @@ static void MX_GPIO_Init(void)
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
-  /* Infinite loop */
-  for(;;)
+
+  for (;;)
   {
-    osDelay(1);
+    osDelay(1000);
   }
   /* USER CODE END 5 */
 }
@@ -440,6 +477,7 @@ void Task_CAN_Rx(void *argument)
   for (;;)
   {
     can_receiver_task_run();
+    task_watchdog_kick(TASK_WD_CANRX);
   }
   /* USER CODE END Task_CAN_Rx */
 }
@@ -457,19 +495,40 @@ void Task_Display(void *argument)
   uart_transport_init();
   vv_init();
 
+  uint32_t fail_cycles   = 0;
+  uint32_t last_reinit   = 0;
   uint32_t tick = osKernelGetTickCount();
   for (;;)
   {
     vehicle_state_t state;
     can_receiver_get_state(&state);
 
-    vv_update_field(VV_FIELD_RPM,     state.rpm.value);
-    vv_update_field(VV_FIELD_GEAR,    state.gear.value);
-    vv_update_field(VV_FIELD_TPS,     state.tps.value);
-    vv_update_field(VV_FIELD_BATTERY, state.battery_voltage.value);
-    vv_update_field(VV_FIELD_ECT,     state.ect.value);
+    bool ok = true;
+    ok &= (vv_update_field(VV_FIELD_RPM,     state.rpm.value)             == DISP_OK);
+    ok &= (vv_update_field(VV_FIELD_GEAR,    state.gear.value)            == DISP_OK);
+    ok &= (vv_update_field(VV_FIELD_TPS,     state.tps.value)             == DISP_OK);
+    ok &= (vv_update_field(VV_FIELD_BATTERY, state.battery_voltage.value) == DISP_OK);
+    ok &= (vv_update_field(VV_FIELD_ECT,     state.ect.value)             == DISP_OK);
 
-    tick += 50u;
+    if (ok) {
+      fail_cycles = 0;
+    } else if (fail_cycles < CFG_DISP_FAIL_CYCLES) {
+      fail_cycles++;
+    }
+
+    bool comm_failed = (fail_cycles >= CFG_DISP_FAIL_CYCLES);
+    comm_watchdog_set_failed(comm_failed);
+
+    if (comm_failed) {
+      uint32_t now = osKernelGetTickCount();
+      if ((now - last_reinit) >= CFG_DISP_REINIT_PERIOD_MS) {
+        uart_transport_reset();
+        last_reinit = now;
+      }
+    }
+
+    task_watchdog_kick(TASK_WD_DISPLAY);
+    tick += CFG_DISPLAY_PERIOD_MS;
     osDelayUntil(tick);
   }
   /* USER CODE END Task_Display */
@@ -485,10 +544,26 @@ void Task_Display(void *argument)
 void Task_Heartbeat(void *argument)
 {
   /* USER CODE BEGIN Task_Heartbeat */
-  heartbeat_led_init(&ws2812, HEARTBEAT_LED_INDEX);
+  heartbeat_led_init(&ws2812, CFG_HEARTBEAT_LED_IDX);
+  shifting_lights_init(&ws2812);
 
   for (;;)
   {
+    vehicle_state_t state;
+    can_receiver_get_state(&state);
+    shifting_lights_update(state.rpm.value, state.gear.value);
+
+    heartbeat_status_t status = HB_STATUS_OK;
+
+    if (!task_watchdog_ok(TASK_WD_CANRX,  CFG_TASK_WD_TIMEOUT_MS) ||
+        !task_watchdog_ok(TASK_WD_DISPLAY, CFG_TASK_WD_TIMEOUT_MS) ||
+        comm_watchdog_is_failed()) {
+      status = HB_STATUS_ERROR;
+    } else if ((osKernelGetTickCount() - state.rpm.timestamp_ms) > CFG_CAN_STALE_MS) {
+      status = HB_STATUS_WARN;
+    }
+
+    heartbeat_led_set_status(status);
     heartbeat_led_tick();
     osDelay(20);
   }

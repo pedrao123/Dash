@@ -53,6 +53,27 @@
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+extern volatile uint32_t fault_cookie; /* defined in main.c (.sram1_bss) */
+
+/* Send a single character over USART3 using register-level polling.
+ * Safe to call from any fault handler — no HAL, no RTOS, no stack frames. */
+static void fault_putc(char c)
+{
+    while (!(USART3->ISR & USART_ISR_TXE)) {}
+    USART3->TDR = (uint8_t)c;
+    while (!(USART3->ISR & USART_ISR_TC)) {}
+}
+
+/* Called from configASSERT macro (FreeRTOSConfig.h) on assertion failure.
+ * Sends 'A' on UART3 so a terminal shows which crash type this is, then
+ * resets so the crash-cookie LED indicator fires on next boot (white = assert). */
+void fault_indicate_assert(void)
+{
+    fault_putc('A');            /* 'A' = configASSERT on UART3 @ 115200 */
+    fault_cookie = 0xDEAD0005UL;
+    NVIC_SystemReset();
+}
+
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
@@ -65,6 +86,7 @@ extern TIM_HandleTypeDef htim14;
 
 /* USER CODE BEGIN EV */
 extern ws2812_handleTypeDef ws2812;
+extern volatile uint32_t fault_cookie;
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -76,12 +98,12 @@ extern ws2812_handleTypeDef ws2812;
 void NMI_Handler(void)
 {
   /* USER CODE BEGIN NonMaskableInt_IRQn 0 */
-
+  fault_putc('N');          /* 'N' = NMI on UART3 @ 115200 */
+  fault_cookie = 0xDEAD0005UL;
+  NVIC_SystemReset();
   /* USER CODE END NonMaskableInt_IRQn 0 */
   /* USER CODE BEGIN NonMaskableInt_IRQn 1 */
-   while (1)
-  {
-  }
+  while (1) {}
   /* USER CODE END NonMaskableInt_IRQn 1 */
 }
 
@@ -91,7 +113,9 @@ void NMI_Handler(void)
 void HardFault_Handler(void)
 {
   /* USER CODE BEGIN HardFault_IRQn 0 */
-
+  fault_putc('H');          /* 'H' = HardFault on UART3 @ 115200 */
+  fault_cookie = 0xDEAD0001UL;
+  NVIC_SystemReset();
   /* USER CODE END HardFault_IRQn 0 */
   while (1)
   {
@@ -106,7 +130,9 @@ void HardFault_Handler(void)
 void MemManage_Handler(void)
 {
   /* USER CODE BEGIN MemoryManagement_IRQn 0 */
-
+  fault_putc('M');          /* 'M' = MemManage on UART3 @ 115200 */
+  fault_cookie = 0xDEAD0002UL;
+  NVIC_SystemReset();
   /* USER CODE END MemoryManagement_IRQn 0 */
   while (1)
   {
@@ -121,7 +147,9 @@ void MemManage_Handler(void)
 void BusFault_Handler(void)
 {
   /* USER CODE BEGIN BusFault_IRQn 0 */
-
+  fault_putc('B');          /* 'B' = BusFault on UART3 @ 115200 */
+  fault_cookie = 0xDEAD0003UL;
+  NVIC_SystemReset();
   /* USER CODE END BusFault_IRQn 0 */
   while (1)
   {
@@ -136,7 +164,9 @@ void BusFault_Handler(void)
 void UsageFault_Handler(void)
 {
   /* USER CODE BEGIN UsageFault_IRQn 0 */
-
+  fault_putc('U');          /* 'U' = UsageFault on UART3 @ 115200 */
+  fault_cookie = 0xDEAD0004UL;
+  NVIC_SystemReset();
   /* USER CODE END UsageFault_IRQn 0 */
   while (1)
   {

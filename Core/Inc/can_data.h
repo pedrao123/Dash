@@ -4,8 +4,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define CAN_FIELD_STALE_MS  500u  // field is stale if not updated within this window
-
 typedef struct {
     uint32_t value;
     uint32_t timestamp_ms;

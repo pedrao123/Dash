@@ -5,48 +5,57 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
+../Core/Src/can_receiver.c \
 ../Core/Src/color_values.c \
 ../Core/Src/freertos.c \
 ../Core/Src/heartbeat_led.c \
 ../Core/Src/main.c \
+../Core/Src/shifting_lights.c \
 ../Core/Src/stm32f7xx_hal_msp.c \
 ../Core/Src/stm32f7xx_hal_timebase_tim.c \
 ../Core/Src/stm32f7xx_it.c \
 ../Core/Src/syscalls.c \
 ../Core/Src/sysmem.c \
 ../Core/Src/system_stm32f7xx.c \
+../Core/Src/task_watchdog.c \
 ../Core/Src/uart_transport.c \
 ../Core/Src/victor_vision.c \
 ../Core/Src/ws2812.c \
 ../Core/Src/ws2812_demos.c 
 
 OBJS += \
+./Core/Src/can_receiver.o \
 ./Core/Src/color_values.o \
 ./Core/Src/freertos.o \
 ./Core/Src/heartbeat_led.o \
 ./Core/Src/main.o \
+./Core/Src/shifting_lights.o \
 ./Core/Src/stm32f7xx_hal_msp.o \
 ./Core/Src/stm32f7xx_hal_timebase_tim.o \
 ./Core/Src/stm32f7xx_it.o \
 ./Core/Src/syscalls.o \
 ./Core/Src/sysmem.o \
 ./Core/Src/system_stm32f7xx.o \
+./Core/Src/task_watchdog.o \
 ./Core/Src/uart_transport.o \
 ./Core/Src/victor_vision.o \
 ./Core/Src/ws2812.o \
 ./Core/Src/ws2812_demos.o 
 
 C_DEPS += \
+./Core/Src/can_receiver.d \
 ./Core/Src/color_values.d \
 ./Core/Src/freertos.d \
 ./Core/Src/heartbeat_led.d \
 ./Core/Src/main.d \
+./Core/Src/shifting_lights.d \
 ./Core/Src/stm32f7xx_hal_msp.d \
 ./Core/Src/stm32f7xx_hal_timebase_tim.d \
 ./Core/Src/stm32f7xx_it.d \
 ./Core/Src/syscalls.d \
 ./Core/Src/sysmem.d \
 ./Core/Src/system_stm32f7xx.d \
+./Core/Src/task_watchdog.d \
 ./Core/Src/uart_transport.d \
 ./Core/Src/victor_vision.d \
 ./Core/Src/ws2812.d \
@@ -60,7 +69,7 @@ Core/Src/%.o Core/Src/%.su Core/Src/%.cyclo: ../Core/Src/%.c Core/Src/subdir.mk
 clean: clean-Core-2f-Src
 
 clean-Core-2f-Src:
-	-$(RM) ./Core/Src/color_values.cyclo ./Core/Src/color_values.d ./Core/Src/color_values.o ./Core/Src/color_values.su ./Core/Src/freertos.cyclo ./Core/Src/freertos.d ./Core/Src/freertos.o ./Core/Src/freertos.su ./Core/Src/heartbeat_led.cyclo ./Core/Src/heartbeat_led.d ./Core/Src/heartbeat_led.o ./Core/Src/heartbeat_led.su ./Core/Src/main.cyclo ./Core/Src/main.d ./Core/Src/main.o ./Core/Src/main.su ./Core/Src/stm32f7xx_hal_msp.cyclo ./Core/Src/stm32f7xx_hal_msp.d ./Core/Src/stm32f7xx_hal_msp.o ./Core/Src/stm32f7xx_hal_msp.su ./Core/Src/stm32f7xx_hal_timebase_tim.cyclo ./Core/Src/stm32f7xx_hal_timebase_tim.d ./Core/Src/stm32f7xx_hal_timebase_tim.o ./Core/Src/stm32f7xx_hal_timebase_tim.su ./Core/Src/stm32f7xx_it.cyclo ./Core/Src/stm32f7xx_it.d ./Core/Src/stm32f7xx_it.o ./Core/Src/stm32f7xx_it.su ./Core/Src/syscalls.cyclo ./Core/Src/syscalls.d ./Core/Src/syscalls.o ./Core/Src/syscalls.su ./Core/Src/sysmem.cyclo ./Core/Src/sysmem.d ./Core/Src/sysmem.o ./Core/Src/sysmem.su ./Core/Src/system_stm32f7xx.cyclo ./Core/Src/system_stm32f7xx.d ./Core/Src/system_stm32f7xx.o ./Core/Src/system_stm32f7xx.su ./Core/Src/uart_transport.cyclo ./Core/Src/uart_transport.d ./Core/Src/uart_transport.o ./Core/Src/uart_transport.su ./Core/Src/victor_vision.cyclo ./Core/Src/victor_vision.d ./Core/Src/victor_vision.o ./Core/Src/victor_vision.su ./Core/Src/ws2812.cyclo ./Core/Src/ws2812.d ./Core/Src/ws2812.o ./Core/Src/ws2812.su ./Core/Src/ws2812_demos.cyclo ./Core/Src/ws2812_demos.d ./Core/Src/ws2812_demos.o ./Core/Src/ws2812_demos.su
+	-$(RM) ./Core/Src/can_receiver.cyclo ./Core/Src/can_receiver.d ./Core/Src/can_receiver.o ./Core/Src/can_receiver.su ./Core/Src/color_values.cyclo ./Core/Src/color_values.d ./Core/Src/color_values.o ./Core/Src/color_values.su ./Core/Src/freertos.cyclo ./Core/Src/freertos.d ./Core/Src/freertos.o ./Core/Src/freertos.su ./Core/Src/heartbeat_led.cyclo ./Core/Src/heartbeat_led.d ./Core/Src/heartbeat_led.o ./Core/Src/heartbeat_led.su ./Core/Src/main.cyclo ./Core/Src/main.d ./Core/Src/main.o ./Core/Src/main.su ./Core/Src/shifting_lights.cyclo ./Core/Src/shifting_lights.d ./Core/Src/shifting_lights.o ./Core/Src/shifting_lights.su ./Core/Src/stm32f7xx_hal_msp.cyclo ./Core/Src/stm32f7xx_hal_msp.d ./Core/Src/stm32f7xx_hal_msp.o ./Core/Src/stm32f7xx_hal_msp.su ./Core/Src/stm32f7xx_hal_timebase_tim.cyclo ./Core/Src/stm32f7xx_hal_timebase_tim.d ./Core/Src/stm32f7xx_hal_timebase_tim.o ./Core/Src/stm32f7xx_hal_timebase_tim.su ./Core/Src/stm32f7xx_it.cyclo ./Core/Src/stm32f7xx_it.d ./Core/Src/stm32f7xx_it.o ./Core/Src/stm32f7xx_it.su ./Core/Src/syscalls.cyclo ./Core/Src/syscalls.d ./Core/Src/syscalls.o ./Core/Src/syscalls.su ./Core/Src/sysmem.cyclo ./Core/Src/sysmem.d ./Core/Src/sysmem.o ./Core/Src/sysmem.su ./Core/Src/system_stm32f7xx.cyclo ./Core/Src/system_stm32f7xx.d ./Core/Src/system_stm32f7xx.o ./Core/Src/system_stm32f7xx.su ./Core/Src/task_watchdog.cyclo ./Core/Src/task_watchdog.d ./Core/Src/task_watchdog.o ./Core/Src/task_watchdog.su ./Core/Src/uart_transport.cyclo ./Core/Src/uart_transport.d ./Core/Src/uart_transport.o ./Core/Src/uart_transport.su ./Core/Src/victor_vision.cyclo ./Core/Src/victor_vision.d ./Core/Src/victor_vision.o ./Core/Src/victor_vision.su ./Core/Src/ws2812.cyclo ./Core/Src/ws2812.d ./Core/Src/ws2812.o ./Core/Src/ws2812.su ./Core/Src/ws2812_demos.cyclo ./Core/Src/ws2812_demos.d ./Core/Src/ws2812_demos.o ./Core/Src/ws2812_demos.su
 
 .PHONY: clean-Core-2f-Src
 

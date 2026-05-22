@@ -1,4 +1,5 @@
 #include "heartbeat_led.h"
+#include "config.h"
 #include "stm32f7xx_hal.h"
 
 // Lub-dub pattern timing (total = 1000 ms @ 1 Hz)
@@ -9,9 +10,9 @@
 typedef struct { uint8_t r, g, b; } rgb_t;
 
 static const rgb_t STATUS_COLORS[] = {
-    [HB_STATUS_OK]    = {  0, 20,  0 },  // green
-    [HB_STATUS_WARN]  = { 20, 12,  0 },  // amber
-    [HB_STATUS_ERROR] = { 20,  0,  0 },  // red
+    [HB_STATUS_OK]    = CFG_HB_COLOR_OK,
+    [HB_STATUS_WARN]  = CFG_HB_COLOR_WARN,
+    [HB_STATUS_ERROR] = CFG_HB_COLOR_ERROR,
 };
 
 static ws2812_handleTypeDef *s_ws;

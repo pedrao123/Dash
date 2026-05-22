@@ -30,6 +30,16 @@ void uart_transport_init(void) {
     rx_restart();
 }
 
+void uart_transport_reset(void) {
+    /* Abort resets huart3.gState from BUSY_TX back to READY and stops the
+     * DMA, so the next HAL_UART_Transmit_DMA call won't return HAL_BUSY.
+     * The mutex is always released on send timeout, so it is free here.
+     * Drain any stale TxCplt token that fires after the abort. */
+    HAL_UART_Abort(&huart3);
+    osSemaphoreAcquire(s_tx_done, 0);
+    rx_restart();
+}
+
 void uart_transport_set_rx_callback(void (*cb)(const uint8_t *data, uint16_t len)) {
     s_rx_cb = cb;
 }
