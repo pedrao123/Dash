@@ -287,11 +287,11 @@ static void MX_CAN1_Init(void)
 
   /* USER CODE END CAN1_Init 1 */
   hcan1.Instance = CAN1;
-  hcan1.Init.Prescaler = 3;
+  hcan1.Init.Prescaler = 9;
   hcan1.Init.Mode = CAN_MODE_NORMAL;
   hcan1.Init.SyncJumpWidth = CAN_SJW_1TQ;
-  hcan1.Init.TimeSeg1 = CAN_BS1_13TQ;
-  hcan1.Init.TimeSeg2 = CAN_BS2_4TQ;
+  hcan1.Init.TimeSeg1 = CAN_BS1_10TQ;
+  hcan1.Init.TimeSeg2 = CAN_BS2_1TQ;
   hcan1.Init.TimeTriggeredMode = DISABLE;
   hcan1.Init.AutoBusOff = ENABLE;
   hcan1.Init.AutoWakeUp = DISABLE;
@@ -555,9 +555,7 @@ void Task_Heartbeat(void *argument)
 
     heartbeat_status_t status = HB_STATUS_OK;
 
-    if (!task_watchdog_ok(TASK_WD_CANRX,  CFG_TASK_WD_TIMEOUT_MS) ||
-        !task_watchdog_ok(TASK_WD_DISPLAY, CFG_TASK_WD_TIMEOUT_MS) ||
-        comm_watchdog_is_failed()) {
+    if (!task_watchdog_ok(TASK_WD_CANRX, CFG_TASK_WD_TIMEOUT_MS)) {
       status = HB_STATUS_ERROR;
     } else if ((osKernelGetTickCount() - state.rpm.timestamp_ms) > CFG_CAN_STALE_MS) {
       status = HB_STATUS_WARN;

@@ -56,7 +56,7 @@ typedef struct {
     ws2812_stateTypeDef led_state;          // LED Transfer state machine
     uint16_t led_cnt;                       // Counts through the leds starting from zero up to "leds"
     uint8_t res_cnt;                        // Counts reset cycles when in reset state
-    uint8_t is_dirty;                       // Indicates to the call back that the led color values have been updated
+    volatile uint8_t is_dirty;              // Indicates to the call back that the led color values have been updated
     uint8_t zero_halves;                    // Counts halves send during reset
     uint32_t dma_cbs;                       // Just used for statistics
     uint32_t dat_cbs;                       // Also used for statistics

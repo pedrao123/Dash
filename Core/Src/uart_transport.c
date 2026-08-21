@@ -5,7 +5,7 @@
 
 #define RX_BUF_SIZE  64u
 #define TX_BUF_SIZE  32u   // max frame size (write + CRC = 10 bytes)
-#define TX_TIMEOUT   pdMS_TO_TICKS(100)
+#define TX_TIMEOUT   pdMS_TO_TICKS(5)    // 8 bytes @ 115200 = ~0.7ms; 5ms = 7x margin
 
 extern UART_HandleTypeDef  huart3;
 extern DMA_HandleTypeDef   hdma_usart3_rx;
@@ -61,7 +61,7 @@ bool uart_transport_send(const uint8_t *data, uint16_t len) {
     return ok;
 }
 
-// --- HAL callbacks (override weak symbols) -----------------------------------
+//  HAL callbacks (override weak symbols) 
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
     if (huart->Instance != USART3) return;

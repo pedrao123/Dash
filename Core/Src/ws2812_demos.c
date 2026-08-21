@@ -83,5 +83,6 @@ void ws2812_demos_tick(ws2812_handleTypeDef *ws2812) {
     }
     default:
         // Do nothing
+        break;
     }
 }

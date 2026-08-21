@@ -5,7 +5,7 @@
 #include <string.h>
 #include <stdbool.h>
 
-// --- Protocol constants ------------------------------------------------------
+//  Protocol constants
 
 #define FRAME_HDR_H     0x5Au
 #define FRAME_HDR_L     0xA5u
@@ -29,7 +29,7 @@ static const uint16_t s_vp_table[] = {
 };
 #define FIELD_COUNT ((uint8_t)(sizeof(s_vp_table) / sizeof(s_vp_table[0])))
 
-// --- Frame builders ----------------------------------------------------------
+//  Frame builders
 
 static uint16_t frame_write_vp(uint8_t *buf, uint16_t vp, uint16_t val) {
     buf[0] = FRAME_HDR_H;
@@ -51,7 +51,7 @@ static uint16_t frame_read_vp(uint8_t *buf, uint16_t vp) {
     return 7u;
 }
 
-// --- RX parser ---------------------------------------------------------------
+//  RX parser
 // Runs in ISR context (called from uart_transport HAL callback).
 // Only ISR-safe operations and osSemaphoreRelease allowed here.
 
@@ -64,11 +64,11 @@ static struct {
     uint8_t cnt;
 } s_rx;
 
-static osSemaphoreId_t s_resp_sem;
-static osMutexId_t     s_req_mutex;
-static uint16_t        s_pending_vp;
-static uint16_t        s_resp_val;
-static bool            s_resp_ok;
+static osSemaphoreId_t   s_resp_sem;
+static osMutexId_t       s_req_mutex;
+static uint16_t          s_pending_vp;
+static volatile uint16_t s_resp_val;
+static volatile bool     s_resp_ok;
 
 static void parser_reset(void) {
     s_rx.state = PS_FHH;
@@ -108,7 +108,7 @@ static void rx_cb(const uint8_t *data, uint16_t len) {
     }
 }
 
-// --- Public API --------------------------------------------------------------
+// Public API 
 
 void vv_init(void) {
     s_resp_sem  = osSemaphoreNew(1, 0, NULL);

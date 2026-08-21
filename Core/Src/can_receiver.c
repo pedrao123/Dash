@@ -4,6 +4,7 @@
 #include "cmsis_os.h"
 #include <string.h>
 
+//takes can first 2 bits and return an 16bit int in bigendian
 static inline int16_t be16(const uint8_t *d, uint8_t off) {
     return (int16_t)(((uint16_t)d[off] << 8) | d[off + 1]);
 }
@@ -14,12 +15,13 @@ static osMutexId_t      s_state_mutex;
 static osSemaphoreId_t  s_rx_sem;
 static vehicle_state_t  s_state;
 
+//up
 static void update_field(can_field_t *f, uint32_t value) {
     f->value        = value;
     f->timestamp_ms = osKernelGetTickCount();
     f->fresh        = true;
 }
-
+//clears CAN message
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
     if (hcan->Instance == CAN1) {
         /* Disable FMPIE immediately to prevent interrupt storm.

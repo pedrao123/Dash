@@ -8,7 +8,7 @@
 ../Core/Src/main.c:455:6:StartDefaultTask	1
 ../Core/Src/main.c:473:6:Task_CAN_Rx	1
 ../Core/Src/main.c:492:6:Task_Display	5
-../Core/Src/main.c:544:6:Task_Heartbeat	5
-../Core/Src/main.c:575:6:MPU_Config	1
-../Core/Src/main.c:610:6:HAL_TIM_PeriodElapsedCallback	2
-../Core/Src/main.c:628:6:Error_Handler	1
+../Core/Src/main.c:544:6:Task_Heartbeat	3
+../Core/Src/main.c:573:6:MPU_Config	1
+../Core/Src/main.c:608:6:HAL_TIM_PeriodElapsedCallback	2
+../Core/Src/main.c:626:6:Error_Handler	1
