@@ -23,9 +23,9 @@
 // Buffer allocated will be twice this
 #define BUFFER_SIZE 24
 
-// LED on/off counts. LED_CNT is the PWM timer period (set in main.h, currently 224).
+// LED on/off counts. LED_CNT is the PWM timer period (set in main.h, currently 79).
 // Rule of three based on reference period=300: LED_OFF=75 (25%), LED_ON=150 (50%)
-// At LED_CNT=224: LED_OFF = 75*224/300 = 56, LED_ON = 150*224/300 = 112
+// At LED_CNT=79: LED_OFF = 75*79/300 = 19 (~0.30 us), LED_ON = 150*79/300 = 39 (~0.61 us)
 #define LED_OFF 75 * LED_CNT / 300  // ~25% duty cycle
 #define LED_ON 150 * LED_CNT / 300  // ~50% duty cycle
 #define LED_RESET_CYCLES 10        // Full 24-bit cycles
