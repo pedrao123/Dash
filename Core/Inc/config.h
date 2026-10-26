@@ -80,6 +80,10 @@ static inline uint32_t cfg_ect_convert(int16_t raw) {
 #define CFG_SHIFT_LED_START      1u   /* first WS2812 index used for shifting */
 #define CFG_SHIFT_LED_COUNT      4u   /* number of shifting LEDs              */
 
+/* Fixed-mode thresholds — same for every gear */
+#define CFG_SHIFT_RPM_START      11000u
+#define CFG_SHIFT_RPM_SHIFT      13000u
+
 /* Gear-mode thresholds — index = gear number, 0 = neutral/off */
 /*                                    N      1      2      3      4      5      6   */
 #define CFG_SHIFT_RPM_START_BY_GEAR  { 0u, 11000u, 11000u, 11000u, 11000u, 11000u, 11000u }

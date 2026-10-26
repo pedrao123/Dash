@@ -46,8 +46,13 @@ MEMORY
 {
   RAM    (xrw)    : ORIGIN = 0x20000000,   LENGTH = 64K
   SRAM1  (xrw)    : ORIGIN = 0x20010000,   LENGTH = 192K
-  FLASH    (rx)    : ORIGIN = 0x8000000,   LENGTH = 512K
+  FLASH    (rx)    : ORIGIN = 0x8000000,   LENGTH = 256K   /* sectors 0-5 */
+  CONFIG   (r)     : ORIGIN = 0x8040000,   LENGTH = 256K   /* sectors 6-7: config log (config_flash.c) */
 }
+
+/* Config log areas — config_flash.c erases sectors 6 and 7 by number */
+__config_store_start = ORIGIN(CONFIG);
+ASSERT(ORIGIN(CONFIG) == 0x08040000 && LENGTH(CONFIG) == 256K, "CONFIG must be exactly sectors 6-7")
 
 /* Sections */
 SECTIONS

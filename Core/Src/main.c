@@ -14,6 +14,8 @@
 #include "victor_vision.h"
 #include "can_receiver.h"
 #include "task_watchdog.h"
+#include "dash_config.h"
+#include "config_cmd.h"
 
 /* USER CODE END Includes */
 
@@ -83,6 +85,21 @@ __attribute__((section(".sram1_bss"))) ws2812_handleTypeDef ws2812;
  *   0xDEAD0005 = NMI         → white
  */
 __attribute__((section(".sram1_bss"))) volatile uint32_t fault_cookie;
+
+/* UART ports — created before the scheduler starts, one owner task each. */
+static uart_transport_t *s_disp_port;   /* USART3 → Victor Vision display */
+static uart_transport_t *s_cfg_port;    /* USART2 → USB-serial config port */
+
+/* Config port RX: ISR pushes bytes, Task_Config pulls them. */
+#define CONFIG_RX_QUEUE_LEN  128u
+static osMessageQueueId_t s_cfg_rx_queue;
+
+osThreadId_t TaskConfigHandle;
+const osThreadAttr_t TaskConfig_attributes = {
+  .name = "TaskConfig",
+  .stack_size = 512 * 4,   /* vsnprintf in config_cmd */
+  .priority = (osPriority_t) osPriorityLow,
+};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -100,6 +117,7 @@ void Task_Display(void *argument);
 void Task_Heartbeat(void *argument);
 
 /* USER CODE BEGIN PFP */
+void Task_Config(void *argument);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -173,6 +191,9 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
+  dash_config_init();
+  s_disp_port = uart_transport_init(&huart3);
+  s_cfg_port  = uart_transport_init(&huart2);
   /* USER CODE END RTOS_MUTEX */
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
@@ -185,6 +206,7 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
+  s_cfg_rx_queue = osMessageQueueNew(CONFIG_RX_QUEUE_LEN, sizeof(uint8_t), NULL);
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
@@ -202,6 +224,7 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
+  TaskConfigHandle = osThreadNew(Task_Config, NULL, &TaskConfig_attributes);
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */
@@ -482,6 +505,36 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+/* ISR context: hand bytes to Task_Config. Drops bytes if the queue is full. */
+static void cfg_rx_cb(const uint8_t *data, uint16_t len)
+{
+  for (uint16_t i = 0; i < len; i++)
+    osMessageQueuePut(s_cfg_rx_queue, &data[i], 0, 0);
+}
+
+static void cfg_write(const char *data, uint16_t len)
+{
+  uart_transport_send(s_cfg_port, (const uint8_t *)data, len);
+}
+
+/* Owns the config port: bytes from the ISR queue go to the command parser. */
+void Task_Config(void *argument)
+{
+  uart_transport_set_rx_callback(s_cfg_port, cfg_rx_cb);
+  config_cmd_init(cfg_write);
+
+  uint8_t buf[32];
+  for (;;)
+  {
+    uint16_t n = 0;
+    if (osMessageQueueGet(s_cfg_rx_queue, &buf[n], NULL, osWaitForever) != osOK)
+      continue;
+    n++;
+    while (n < sizeof(buf) && osMessageQueueGet(s_cfg_rx_queue, &buf[n], NULL, 0) == osOK)
+      n++;
+    config_cmd_input(buf, n);
+  }
+}
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -531,14 +584,20 @@ void Task_CAN_Rx(void *argument)
 void Task_Display(void *argument)
 {
   /* USER CODE BEGIN Task_Display */
-  uart_transport_init();
-  vv_init();
+  vv_init(s_disp_port);
 
+  static dash_config_t cfg;   /* static: keeps the copy off the task stack */
+  uint32_t applied_gen   = 0;
   uint32_t fail_cycles   = 0;
   uint32_t last_reinit   = 0;
   uint32_t tick = osKernelGetTickCount();
   for (;;)
   {
+    if (dash_config_generation() != applied_gen) {
+      applied_gen = dash_config_get(&cfg);
+      vv_set_config(&cfg.display);
+    }
+
     vehicle_state_t state;
     can_receiver_get_state(&state);
 
@@ -551,23 +610,23 @@ void Task_Display(void *argument)
 
     if (ok) {
       fail_cycles = 0;
-    } else if (fail_cycles < CFG_DISP_FAIL_CYCLES) {
+    } else if (fail_cycles < cfg.disp_fail_cycles) {
       fail_cycles++;
     }
 
-    bool comm_failed = (fail_cycles >= CFG_DISP_FAIL_CYCLES);
+    bool comm_failed = (fail_cycles >= cfg.disp_fail_cycles);
     comm_watchdog_set_failed(comm_failed);
 
     if (comm_failed) {
       uint32_t now = osKernelGetTickCount();
-      if ((now - last_reinit) >= CFG_DISP_REINIT_PERIOD_MS) {
-        uart_transport_reset();
+      if ((now - last_reinit) >= cfg.disp_reinit_period_ms) {
+        uart_transport_reset(s_disp_port);
         last_reinit = now;
       }
     }
 
     task_watchdog_kick(TASK_WD_DISPLAY);
-    tick += CFG_DISPLAY_PERIOD_MS;
+    tick += cfg.display_period_ms;
     osDelayUntil(tick);
   }
   /* USER CODE END Task_Display */
@@ -586,8 +645,16 @@ void Task_Heartbeat(void *argument)
   heartbeat_led_init(&ws2812, CFG_HEARTBEAT_LED_IDX);
   shifting_lights_init(&ws2812);
 
+  static dash_config_t cfg;   /* static: keeps the copy off the task stack */
+  uint32_t applied_gen = 0;
   for (;;)
   {
+    if (dash_config_generation() != applied_gen) {
+      applied_gen = dash_config_get(&cfg);
+      shifting_lights_set_config(&cfg.shift);
+      heartbeat_led_set_colors(cfg.hb_colors);
+    }
+
     vehicle_state_t state;
     can_receiver_get_state(&state);
     shifting_lights_update(state.rpm.value, state.gear.value);
@@ -596,7 +663,7 @@ void Task_Heartbeat(void *argument)
 
     if (!task_watchdog_ok(TASK_WD_CANRX, CFG_TASK_WD_TIMEOUT_MS)) {
       status = HB_STATUS_ERROR;
-    } else if ((osKernelGetTickCount() - state.rpm.timestamp_ms) > CFG_CAN_STALE_MS) {
+    } else if ((osKernelGetTickCount() - state.rpm.timestamp_ms) > cfg.can_stale_ms) {
       status = HB_STATUS_WARN;
     }
 

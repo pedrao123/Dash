@@ -1,5 +1,4 @@
 #include "victor_vision.h"
-#include "config.h"
 #include "uart_transport.h"
 #include "cmsis_os.h"
 #include <string.h>
@@ -17,17 +16,10 @@
 #define BC_READ_REQ_1W  4u   // CMD(1) + VP(2) + LEN(1)
 #define BC_READ_RSP_1W  6u   // CMD(1) + VP(2) + LEN(1) + DATA(2)
 
-#define RESP_TIMEOUT    pdMS_TO_TICKS(CFG_VV_RESP_TIMEOUT_MS)
 #define MAX_PAYLOAD     32u
 
-static const uint16_t s_vp_table[] = {
-    [VV_FIELD_RPM]     = CFG_VP_RPM,
-    [VV_FIELD_GEAR]    = CFG_VP_GEAR,
-    [VV_FIELD_TPS]     = CFG_VP_TPS,
-    [VV_FIELD_BATTERY] = CFG_VP_BATTERY,
-    [VV_FIELD_ECT]     = CFG_VP_ECT,
-};
-#define FIELD_COUNT ((uint8_t)(sizeof(s_vp_table) / sizeof(s_vp_table[0])))
+static vv_cfg_t          s_cfg;
+static uart_transport_t *s_port;
 
 //  Frame builders
 
@@ -110,26 +102,31 @@ static void rx_cb(const uint8_t *data, uint16_t len) {
 
 // Public API 
 
-void vv_init(void) {
+void vv_init(uart_transport_t *port) {
+    s_port      = port;
     s_resp_sem  = osSemaphoreNew(1, 0, NULL);
     s_req_mutex = osMutexNew(NULL);
     parser_reset();
-    uart_transport_set_rx_callback(rx_cb);
+    uart_transport_set_rx_callback(s_port, rx_cb);
+}
+
+void vv_set_config(const vv_cfg_t *cfg) {
+    s_cfg = *cfg;
 }
 
 disp_result_t vv_update_field(uint8_t field_id, uint32_t value) {
-    if (field_id >= FIELD_COUNT) return DISP_TIMEOUT;
+    if (field_id >= VV_FIELD_COUNT) return DISP_TIMEOUT;
     uint8_t buf[8];
-    uint16_t len = frame_write_vp(buf, s_vp_table[field_id], (uint16_t)value);
-    return uart_transport_send(buf, len) ? DISP_OK : DISP_TIMEOUT;
+    uint16_t len = frame_write_vp(buf, s_cfg.vp[field_id], (uint16_t)value);
+    return uart_transport_send(s_port, buf, len) ? DISP_OK : DISP_TIMEOUT;
 }
 
 disp_result_t vv_request_field(uint8_t field_id, uint32_t *out_value) {
-    if (field_id >= FIELD_COUNT || !out_value) return DISP_TIMEOUT;
+    if (field_id >= VV_FIELD_COUNT || !out_value) return DISP_TIMEOUT;
 
     osMutexAcquire(s_req_mutex, osWaitForever);
 
-    s_pending_vp = s_vp_table[field_id];
+    s_pending_vp = s_cfg.vp[field_id];
     s_resp_ok    = false;
     osSemaphoreAcquire(s_resp_sem, 0);  // drain any stale token from a previous response
 
@@ -137,8 +134,8 @@ disp_result_t vv_request_field(uint8_t field_id, uint32_t *out_value) {
     uint16_t len = frame_read_vp(buf, s_pending_vp);
 
     disp_result_t result = DISP_TIMEOUT;
-    if (uart_transport_send(buf, len)) {
-        if (osSemaphoreAcquire(s_resp_sem, RESP_TIMEOUT) == osOK && s_resp_ok) {
+    if (uart_transport_send(s_port, buf, len)) {
+        if (osSemaphoreAcquire(s_resp_sem, pdMS_TO_TICKS(s_cfg.resp_timeout_ms)) == osOK && s_resp_ok) {
             *out_value = s_resp_val;
             result = DISP_OK;
         }
